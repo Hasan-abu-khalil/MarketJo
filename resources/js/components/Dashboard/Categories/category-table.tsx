@@ -1,5 +1,5 @@
 import SharedTable from '../Shared/SharedTable';
-import TableActions from '../shared/table-actions';
+import TableActions from '../Shared/table-actions';
 
 export default function CategoryTable({ categories, role, filters }) {
     const columns = [

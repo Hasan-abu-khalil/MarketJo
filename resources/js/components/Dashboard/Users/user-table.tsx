@@ -1,5 +1,5 @@
 import SharedTable from '../Shared/SharedTable';
-import TableActions from '../shared/table-actions';
+import TableActions from '../Shared/table-actions';
 import UserStatusSelect from './user-status-select';
 
 export default function UsersTable({ users, role, filters }) {

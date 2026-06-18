@@ -1,6 +1,6 @@
 import SharedTable from '../Shared/SharedTable';
-import StatusBadge from '../shared/status-badge';
-import TableActions from '../shared/table-actions';
+import StatusBadge from '../Shared/status-badge';
+import TableActions from '../Shared/table-actions';
 
 export default function StoreTable({ stores, role, filters }) {
     const columns = [
