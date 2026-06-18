@@ -1,7 +1,7 @@
 import Pagination from '@/components/Front/Shared/Pagination';
 import StoreCard from '@/components/Front/Store/StoreCard';
 import useAutoRefresh from '@/hooks/useAutoRefresh';
-import FrontLayout from '@/Layouts/FrontLayout';
+import FrontLayout from '@/layouts/FrontLayout';
 
 export default function Index({ stores }) {
         useAutoRefresh(['stores']);
