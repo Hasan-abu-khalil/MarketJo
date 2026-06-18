@@ -1,14 +1,13 @@
 import ProductItemCard from '@/components/Front/Product/ProductItemCard';
 import Pagination from '@/components/Front/Shared/Pagination';
 import useAutoRefresh from '@/hooks/useAutoRefresh';
-import FrontLayout from '@/Layouts/FrontLayout';
+import FrontLayout from '@/layouts/FrontLayout';
 import { Link } from '@inertiajs/react';
 
 export default function Show({ store, products }) {
-        useAutoRefresh(['stores']);
-        useAutoRefresh(['products']);
+    useAutoRefresh(['stores']);
+    useAutoRefresh(['products']);
 
-    
     return (
         <FrontLayout>
             <div className="mx-auto max-w-7xl px-4 py-10">
