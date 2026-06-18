@@ -3,6 +3,7 @@ import TableActions from '../shared/table-actions';
 import UserStatusSelect from './user-status-select';
 
 export default function UsersTable({ users, role, filters }) {
+    const filteredUsers = users.data.filter((user) => user.role !== 'admin');
     const columns = [
         { key: 'id', label: '#' },
         { key: 'name', label: 'Customer' },
@@ -13,7 +14,7 @@ export default function UsersTable({ users, role, filters }) {
     return (
         <SharedTable
             columns={columns}
-            data={users.data}
+            data={filteredUsers}
             links={users.links}
             filters={filters}
             renderRow={(user, index) => (

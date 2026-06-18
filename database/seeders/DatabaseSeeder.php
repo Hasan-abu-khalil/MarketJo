@@ -19,19 +19,31 @@ class DatabaseSeeder extends Seeder
         // Admin
         $admin = User::factory()->create([
             'name' => 'Admin',
-            'email' => 'admin@example.com',
+            'email' => 'admin@marketjo.com',
             'role' => 'admin',
         ]);
 
-        // Customers
-        $customers = User::factory(20)->create([
+         $customer = User::factory()->create([
+            'name' => 'Customer',
+            'email' => 'customer@marketjo.com',
             'role' => 'customer',
         ]);
 
-        // Vendors
-        $vendors = User::factory(10)->create([
+         $vendors = User::factory()->create([
+            'name' => 'Vendor',
+            'email' => 'vendor@marketjo.com',
             'role' => 'vendor',
         ]);
+
+        // // Customers
+        // $customers = User::factory(20)->create([
+        //     'role' => 'customer',
+        // ]);
+
+        // // Vendors
+        // $vendors = User::factory(10)->create([
+        //     'role' => 'vendor',
+        // ]);
         $permissions = [
 
             'users.view',
