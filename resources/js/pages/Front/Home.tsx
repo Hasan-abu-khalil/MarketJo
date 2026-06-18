@@ -1,8 +1,8 @@
 import CategoryCard from '@/components/Front/Category/CategoryCard';
-import ProductCard from '@/components/Front/product/productCard';
+import ProductCard from '@/components/Front/Product/ProductCard';
 import StoreCard from '@/components/Front/Store/StoreCard';
 import useAutoRefresh from '@/hooks/useAutoRefresh';
-import FrontLayout from '@/Layouts/FrontLayout';
+import FrontLayout from '@/layouts/FrontLayout';
 import { Link, router } from '@inertiajs/react';
 import { useEffect } from 'react';
 export default function Home({ categories, stores, products, auth, hasActiveRequest, latestRequest }) {

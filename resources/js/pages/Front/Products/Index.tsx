@@ -1,7 +1,7 @@
-import ProductCard from '@/components/Front/product/productCard';
+import ProductCard from '@/components/Front/Product/ProductCard';
 import Pagination from '@/components/Front/Shared/Pagination';
 import useAutoRefresh from '@/hooks/useAutoRefresh';
-import FrontLayout from '@/Layouts/FrontLayout';
+import FrontLayout from '@/layouts/FrontLayout';
 import { router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 

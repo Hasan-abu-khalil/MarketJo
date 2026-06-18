@@ -1,7 +1,7 @@
 import CategoryCard from '@/components/Front/Category/CategoryCard';
 import Pagination from '@/components/Front/Shared/Pagination';
 import useAutoRefresh from '@/hooks/useAutoRefresh';
-import FrontLayout from '@/Layouts/FrontLayout';
+import FrontLayout from '@/layouts/FrontLayout';
 
 export default function Index({ categories }) {
     useAutoRefresh(['categories']);

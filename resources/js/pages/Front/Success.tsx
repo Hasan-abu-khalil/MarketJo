@@ -1,4 +1,4 @@
-import FrontLayout from '@/Layouts/FrontLayout';
+import FrontLayout from '@/layouts/FrontLayout';
 import { Link, router } from '@inertiajs/react';
 import { useEffect } from 'react';
 

@@ -1,4 +1,4 @@
-import FrontLayout from '@/Layouts/FrontLayout';
+import FrontLayout from '@/layouts/FrontLayout';
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
 import toastr from 'toastr';

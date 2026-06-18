@@ -1,4 +1,4 @@
-import FrontLayout from '@/Layouts/FrontLayout';
+import FrontLayout from '@/layouts/FrontLayout';
 import { router, useForm } from '@inertiajs/react';
 import toastr from 'toastr';
 
