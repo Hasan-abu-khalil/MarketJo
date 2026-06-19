@@ -2,172 +2,305 @@
 
 namespace App\Imports;
 
-use App\Models\Category;
+
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Category;
 use App\Models\Store;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+
 use Maatwebsite\Excel\Concerns\OnEachRow;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Row;
 
-class ProductsImport implements OnEachRow, WithHeadingRow, WithValidation
+
+class ProductsImport implements
+    OnEachRow,
+    WithHeadingRow,
+    WithValidation
 {
-    public function __construct(protected $user)
-    {
+
+
+    public function __construct(
+        protected $user
+    ) {
     }
+
+
 
     public function onRow(Row $row)
     {
-        $row = $row->toArray();
 
-        // ---------------- STORE ----------------
+        $data = $row->toArray();
+
+
+        if (empty($data['name'])) {
+            return;
+        }
+
+
+
         $store = Store::query()
             ->forUser($this->user)
-            ->when(!empty($row['store_id']), fn($q) => $q->where('id', $row['store_id']))
-            ->when(!empty($row['store_name']), fn($q) => $q->orWhere('name', $row['store_name']))
+            ->where(function ($q) use ($data) {
+
+                if (!empty($data['store_id'])) {
+                    $q->where('id', $data['store_id']);
+                }
+
+                if (!empty($data['store_name'])) {
+                    $q->orWhere(
+                        'name',
+                        $data['store_name']
+                    );
+                }
+
+            })
             ->first();
 
+
+
         if (!$store) {
-            throw new \Exception("Store not found: " . ($row['store_name'] ?? $row['store_id']));
-        }
-
-        // ---------------- FLAGS ----------------
-        $hasVariants = filter_var($row['has_variants'] ?? false, FILTER_VALIDATE_BOOLEAN);
-
-        // ---------------- IMAGE RESTORE ----------------
-        $imagePath = null;
-
-        // 1. local image
-        if (!empty($row['image']) && Storage::disk('public')->exists($row['image'])) {
-            $imagePath = $row['image'];
-        }
-
-        // 2. fallback download
-        elseif (!empty($row['image_url'])) {
-            try {
-                $contents = @file_get_contents($row['image_url']);
-
-                if ($contents) {
-                    $fileName = 'images/' . uniqid() . '.jpg';
-                    Storage::disk('public')->put($fileName, $contents);
-                    $imagePath = $fileName;
-                }
-            } catch (\Exception $e) {
-                $imagePath = null;
-            }
-        }
-
-        // ---------------- PRODUCT ----------------
-        $product = Product::create([
-            'store_id' => $store->id,
-            'name' => $row['name'],
-            'slug' => Str::slug($row['name'] . '-' . uniqid()),
-            'description' => $row['description'] ?? null,
-            'price' => $row['price'],
-            'stock' => $hasVariants ? 0 : (int) ($row['stock'] ?? 0),
-            'is_active' => (int) ($row['is_active'] ?? 1),
-            'image' => $imagePath,
-        ]);
-
-        // ---------------- CATEGORIES ----------------
-        $categoryIds = collect();
-
-        if (!empty($row['category_ids'])) {
-            $categoryIds = $categoryIds->merge(
-                collect(explode(',', $row['category_ids']))
-                    ->map(fn($id) => (int) trim($id))
+            throw new \Exception(
+                "Store not found"
             );
         }
 
-        if (!empty($row['category_names'])) {
-            $names = collect(explode(',', $row['category_names']))
-                ->map(fn($n) => trim($n))
-                ->filter();
 
-            $idsFromNames = Category::where('store_id', $store->id)
-                ->whereIn('name', $names)
-                ->pluck('id');
 
-            $categoryIds = $categoryIds->merge($idsFromNames);
+        $hasVariants =
+            in_array(
+                strtolower($data['has_variants'] ?? 0),
+                ['1', 'true', 'yes']
+            );
+
+
+
+
+        $product = Product::create([
+
+            'store_id' => $store->id,
+
+            'name' => $data['name'],
+
+            'slug' => Str::slug(
+                $data['name'] . '-' . uniqid()
+            ),
+
+            'description' => $data['description'] ?? null,
+
+            'price' => $data['price'] ?? 0,
+
+            'stock' =>
+                $hasVariants
+                ? 0
+                : ($data['stock'] ?? 0),
+
+            'is_active' =>
+                $data['is_active'] ?? 1,
+
+            'image' =>
+                $this->restoreImage(
+                    $data['image'] ?? null,
+                    $data['image_url'] ?? null
+                )
+        ]);
+
+
+
+
+
+        $categories = [];
+
+
+        foreach (
+            explode(',', $data['category_ids'] ?? '')
+            as $id
+        ) {
+
+            if ($id) {
+                $categories[] = $id;
+            }
         }
 
-        $product->categories()->sync(
-            $categoryIds->filter()->unique()->values()
+
+        $product->categories()
+            ->sync(
+                collect($categories)
+                    ->unique()
+            );
+
+
+
+
+        if (!$hasVariants) {
+
+            ProductVariant::create([
+
+                'product_id' => $product->id,
+
+                'price' => $product->price,
+
+                'stock' => $product->stock,
+
+                'attributes' => [],
+
+                'sku' => $product->id . '-default',
+
+                'image' => $product->image
+            ]);
+
+            return;
+        }
+
+
+
+
+
+        $variants = json_decode(
+            $data['variants'] ?? '[]',
+            true
         );
 
-        // ---------------- VARIANTS ----------------
-        if ($hasVariants) {
 
-            $variants = json_decode($row['variants'] ?? '[]', true);
 
-            if (!is_array($variants)) {
-                $variants = [];
-            }
+        foreach ($variants as $variant) {
 
-            foreach ($variants as $variant) {
 
-                $size = $variant['Size'] ?? null;
-                $color = $variant['Color'] ?? null;
+            $attributes =
+                $variant['attributes'] ?? [];
 
-                $key = collect([$size, $color])
-                    ->filter()
-                    ->map(fn($v) => strtolower(trim($v)))
+
+
+            $key =
+                collect($attributes)
+                    ->values()
+                    ->map(
+                        fn($v) =>
+                        strtolower($v)
+                    )
                     ->implode('-');
 
-                $variantImage = null;
 
-                // variant image restore
-                if (!empty($variant['image']) && Storage::disk('public')->exists($variant['image'])) {
-                    $variantImage = $variant['image'];
-                } elseif (!empty($variant['image_url'])) {
-                    try {
-                        $contents = @file_get_contents($variant['image_url']);
-                        if ($contents) {
-                            $fileName = 'images/' . uniqid() . '.jpg';
-                            Storage::disk('public')->put($fileName, $contents);
-                            $variantImage = $fileName;
-                        }
-                    } catch (\Exception $e) {
+
+            ProductVariant::create([
+
+                'product_id' => $product->id,
+
+                'price' =>
+                    $variant['price']
+                    ?? $product->price,
+
+                'stock' =>
+                    $variant['stock']
+                    ?? 0,
+
+
+                'attributes' => $attributes,
+
+
+                'sku' =>
+                    $product->id . '-' . $key,
+
+
+                'image' =>
+                    $this->restoreImage(
+                        $variant['image'] ?? null,
+                        $variant['image_url'] ?? null
+                    )
+
+            ]);
+        }
+
+    }
+
+
+
+
+    private function restoreImage($path, $url)
+    {
+
+        if (
+            $path &&
+            Storage::disk('public')
+                ->exists($path)
+        ) {
+            return $path;
+        }
+
+
+        if ($url) {
+            try {
+                if ($localPath = $this->localStoragePathFromUrl($url)) {
+                    if (Storage::disk('public')->exists($localPath)) {
+                        return $localPath;
                     }
                 }
 
-                ProductVariant::create([
-                    'product_id' => $product->id,
-                    'price' => $variant['price'] ?? $product->price,
-                    'stock' => (int) ($variant['stock'] ?? 0),
-                    'sku' => $product->id . '-' . $key,
-                    'image' => $variantImage,
-                    'attributes' => [
-                        'Size' => $size,
-                        'Color' => $color,
+                $context = stream_context_create([
+                    'http' => [
+                        'timeout' => 10,
+                        'follow_location' => true,
+                    ],
+                    'ssl' => [
+                        'verify_peer' => false,
+                        'verify_peer_name' => false,
                     ],
                 ]);
-            }
-        } else {
 
-            ProductVariant::create([
-                'product_id' => $product->id,
-                'price' => $product->price,
-                'stock' => $product->stock,
-                'sku' => $product->id . '-default',
-                'attributes' => [],
-                'image' => $imagePath,
-            ]);
+                $content = file_get_contents($url, false, $context);
+
+                if ($content === false) {
+                    return null;
+                }
+
+                $file = 'images/' . uniqid() . '.jpg';
+
+                Storage::disk('public')
+                    ->put($file, $content);
+
+                return $file;
+            } catch (\Throwable $e) {
+                return null;
+            }
         }
+
+
+        return null;
+    }
+
+
+
+    private function localStoragePathFromUrl(string $url): ?string
+    {
+        $parsed = parse_url($url);
+
+        if (! $parsed || empty($parsed['path'])) {
+            return null;
+        }
+
+        $path = $parsed['path'];
+
+        if (str_starts_with($path, '/storage/')) {
+            return ltrim(substr($path, strlen('/storage/')), '/');
+        }
+
+        return null;
     }
 
     public function rules(): array
     {
         return [
-            '*.store_id' => ['required'],
-            '*.name' => ['required'],
-            '*.price' => ['required', 'numeric'],
-            '*.is_active' => ['nullable'],
-            '*.has_variants' => ['nullable'],
-            '*.variants' => ['nullable'],
+
+            'store_id' => 'required',
+
+            'name' => 'required',
+
+            'price' => 'required|numeric',
+
         ];
     }
+
 }

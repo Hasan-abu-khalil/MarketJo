@@ -1,6 +1,5 @@
 import ProductFilters from '@/components/Dashboard/Products/product-filters';
 import ProductTable from '@/components/Dashboard/Products/product-table';
-import useAutoRefresh from '@/hooks/useAutoRefresh';
 
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
@@ -12,7 +11,7 @@ import { useEffect, useState } from 'react';
 const breadcrumbs: BreadcrumbItem[] = [{ title: ' Products', href: '/dashboard/products' }];
 
 export default function ProductsDashboard({ products, filters, categories, permissions }) {
-     useAutoRefresh(['products']);
+    //  useAutoRefresh(['products']);
     const [search, setSearch] = useState(filters.search || '');
 
     const [category, setCategory] = useState(filters.category || '');
@@ -29,17 +28,13 @@ export default function ProductsDashboard({ products, filters, categories, permi
             forceFormData: true,
             preserveScroll: true,
 
-            // onStart: () => {
-            //     console.log('Import started...');
-            // },
+            onError: (errors) => {
+                console.log('IMPORT ERROR:', errors);
+            },
 
-            // onSuccess: () => {
-            //     console.log('Import success');
-            // },
-
-            // onError: (errors) => {
-            //     console.log('Import failed', errors);
-            // },
+            onSuccess: () => {
+                console.log('IMPORT SUCCESS');
+            },
         });
     };
 
@@ -63,8 +58,6 @@ export default function ProductsDashboard({ products, filters, categories, permi
 
         return () => clearTimeout(timeout);
     }, [search, category, isActive, stockStatus]);
-
-    
 
     function stringToColor(str) {
         let hash = 0;

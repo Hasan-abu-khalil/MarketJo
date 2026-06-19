@@ -74,6 +74,8 @@ class DatabaseSeeder extends Seeder
 
             'vendor_orders.view',
             'vendor_orders.update',
+            'vendor_orders.delete',
+
 
             'vendor_requests.view',
             'vendor_requests.update',

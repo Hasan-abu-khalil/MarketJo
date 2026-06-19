@@ -8,47 +8,102 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class ProductsExport implements FromCollection, WithHeadings
 {
-    public function __construct(protected $user) {}
+    public function __construct(
+        protected $user
+    ) {
+    }
 
     public function collection()
     {
         return Product::query()
-            ->with(['store', 'categories', 'variants'])
-            ->whereHas('store', fn($q) => $q->forUser($this->user))
+            ->with([
+                'store',
+                'categories',
+                'variants'
+            ])
+            ->whereHas(
+                'store',
+                fn($q) => $q->forUser($this->user)
+            )
             ->get()
             ->map(function ($product) {
 
                 $hasVariants = $product->variants->count() > 1;
 
                 return [
-                    'store_id' => $product->store_id,
-                    'store_name' => $product->store->name ?? null,
 
-                    'category_ids' => $product->categories->pluck('id')->implode(','),
-                    'category_names' => $product->categories->pluck('name')->implode(','),
+                    'store_id' =>
+                        $product->store_id,
 
-                    'name' => $product->name,
-                    'description' => $product->description,
+                    'store_name' =>
+                        $product->store?->name,
 
-                    'price' => $product->price,
-                    'stock' => $hasVariants ? null : $product->stock,
 
-                    'is_active' => (int) $product->is_active,
-                    'has_variants' => (int) $hasVariants,
+                    'category_ids' =>
+                        $product->categories
+                            ->pluck('id')
+                            ->implode(','),
 
-                    'image' => $product->image,
-                    'image_url' => $product->image ? asset('storage/' . $product->image) : null,
+                    'category_names' =>
+                        $product->categories
+                            ->pluck('name')
+                            ->implode(','),
 
-                    'attributes' => $hasVariants
-                        ? json_encode($this->extractAttributes($product))
+
+                    'name' =>
+                        $product->name,
+
+                    'description' =>
+                        $product->description,
+
+
+                    'price' =>
+                        $product->price,
+
+
+                    'stock' =>
+                        $hasVariants
+                        ? ''
+                        : $product->stock,
+
+
+                    'is_active' =>
+                        (int) $product->is_active,
+
+
+                    'has_variants' =>
+                        $hasVariants ? 1 : 0,
+
+
+                    'image' =>
+                        $product->image,
+
+
+                    'image_url' =>
+                        $product->image
+                        ? asset('storage/' . $product->image)
                         : null,
 
-                    'variants' => $hasVariants
-                        ? json_encode($this->formatVariants($product))
+
+                    'attributes' =>
+                        $hasVariants
+                        ? json_encode(
+                            $this->attributes($product)
+                        )
+                        : null,
+
+
+                    'variants' =>
+                        $hasVariants
+                        ? json_encode(
+                            $this->variants($product)
+                        )
                         : null,
                 ];
             });
     }
+
+
 
     public function headings(): array
     {
@@ -66,35 +121,52 @@ class ProductsExport implements FromCollection, WithHeadings
             'image',
             'image_url',
             'attributes',
-            'variants',
+            'variants'
         ];
     }
 
-    private function extractAttributes($product)
+
+
+    private function attributes($product)
     {
-        $result = [];
+        $data = [];
 
         foreach ($product->variants as $variant) {
+
             foreach ($variant->attributes ?? [] as $key => $value) {
-                $result[$key] ??= [];
-                if (!in_array($value, $result[$key])) {
-                    $result[$key][] = $value;
+
+                $data[$key] ??= [];
+
+                if (!in_array($value, $data[$key])) {
+                    $data[$key][] = $value;
                 }
             }
         }
 
-        return $result;
+        return $data;
     }
 
-    private function formatVariants($product)
+
+
+    private function variants($product)
     {
-        return $product->variants->map(fn($v) => [
-            'Size' => $v->attributes['Size'] ?? null,
-            'Color' => $v->attributes['Color'] ?? null,
-            'price' => $v->price,
-            'stock' => $v->stock,
-            'image' => $v->image,
-            'image_url' => $v->image ? asset('storage/' . $v->image) : null,
-        ]);
+        return $product->variants
+            ->map(function ($variant) {
+
+                return [
+                    'attributes' => $variant->attributes,
+
+                    'price' => $variant->price,
+
+                    'stock' => $variant->stock,
+
+                    'image' => $variant->image,
+
+                    'image_url' => $variant->image
+                        ? asset('storage/' . $variant->image)
+                        : null,
+                ];
+            })
+            ->values();
     }
 }

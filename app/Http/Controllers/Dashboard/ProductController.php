@@ -430,6 +430,7 @@ class ProductController extends Controller
     {
         $this->authorize('export', Product::class);
 
+
         return Excel::download(
             new ProductsExport(auth()->user()),
             'products.xlsx'
@@ -438,52 +439,39 @@ class ProductController extends Controller
 
     public function import(Request $request)
     {
+
         $this->authorize('import', Product::class);
 
+
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv',
+            'file' => 'required|file|mimes:xlsx,xls,csv'
         ]);
+
 
         Excel::import(
             new ProductsImport(auth()->user()),
             $request->file('file')
         );
 
-        return back()->with('success', 'Products imported successfully.');
+
+        return back()
+            ->with(
+                'success',
+                'Products imported successfully'
+            );
     }
 
     public function template()
     {
+
         $this->authorize('export', Product::class);
 
-        $headers = [
-            [
-                'store_id',
-                'store_name',
-                'category_ids',
-                'category_names',
-                'name',
-                'description',
-                'price',
-                'stock',
-                'is_active',
-                'has_variants',
-                'image',
-                'image_url',
-                'attributes',
-                'variants'
-            ]
-        ];
 
-        return response()->streamDownload(function () use ($headers) {
-            $file = fopen('php://output', 'w');
+        return Excel::download(
+            new ProductsExport(auth()->user()),
+            'products-template.xlsx'
+        );
 
-            foreach ($headers as $row) {
-                fputcsv($file, $row);
-            }
-
-            fclose($file);
-        }, 'products-template.csv');
     }
 
 

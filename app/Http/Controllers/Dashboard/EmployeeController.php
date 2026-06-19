@@ -190,7 +190,9 @@ class EmployeeController extends Controller
             'scope' => $user->role === 'admin'
                 ? 'required|in:admin,vendor'
                 : 'required|in:vendor',
-            'store_ids' => ['required', 'array', 'min:1'],
+            'store_ids' => $request->scope === 'vendor'
+                ? ['required', 'array', 'min:1']
+                : ['nullable', 'array'],
             'permissions' => ['required', 'array', 'min:1'],
         ]);
 
@@ -269,7 +271,9 @@ class EmployeeController extends Controller
                 ? 'required|in:admin,vendor'
                 : 'required|in:vendor',
             'permissions.*' => 'integer|exists:permissions,id',
-            'store_ids' => ['required', 'array', 'min:1'],
+            'store_ids' => $request->scope === 'vendor'
+                ? ['required', 'array', 'min:1']
+                : ['nullable', 'array'],
             'permissions' => ['required', 'array', 'min:1'],
         ]);
 
